@@ -1,18 +1,17 @@
 const express = require("express");
 const app = express();
-const mysql = require("mysql2");
+const { Pool } = require("pg");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const res = require("express/lib/response");
 const saltRounds = 10;
 
-{/*Conexão Com o banco de dados */}
-
-const db = mysql.createPool({
+{/*Conexão com o banco de dados */}
+const db = new Pool({
+  user: "postgres",
   host: "localhost",
-  user: "root",
-  password: "!Pre2a7f4c5@",
   database: "bancodeteste",
+  password: "!Pre2a7f4c5@",
+  port: 5432,
 });
 
 app.use(express.json());
@@ -22,20 +21,19 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  db.query("SELECT * FROM usuarios WHERE email = ?", [email], (err, result) => {
+  db.query("SELECT * FROM usuarios WHERE email = $1", [email], (err, result) => {
     if (err) {
       res.send(err);
     }
-    if (result.length == 0) {
+    if (result.rows.length === 0) {
       bcrypt.hash(password, saltRounds, (err, hash) => {
         db.query(
-          "INSERT INTO usuarios (email, password) VALUE (?,?)",
+          "INSERT INTO usuarios (email, password) VALUES ($1, $2)",
           [email, hash],
           (error, response) => {
-            if (err) {
-              res.send(err);
+            if (error) {
+              res.send(error);
             }
-
             res.send({ msg: "Usuário cadastrado com sucesso" });
           }
         );
@@ -47,25 +45,23 @@ app.post("/register", (req, res) => {
 });
 
 {/*Verificação de login*/}
-
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  db.query("SELECT * FROM usuarios WHERE email = ?", [email], (err, result) => {
+  db.query("SELECT * FROM usuarios WHERE email = $1", [email], (err, result) => {
     if (err) {
       res.send(err);
     }
-    if (result.length > 0) {
-      bcrypt.compare(password, result[0].password, (error, response) => {
+    if (result.rows.length > 0) {
+      bcrypt.compare(password, result.rows[0].password, (error, response) => {
         if (error) {
           res.send(error);
         }
         if (response === true) {
-          res.send(response)
-          
+          res.send(response);
         } else {
-          res.send({ msg: "email ou senha incorreta" });
+          res.send({ msg: "Email ou senha incorreta" });
         }
       });
     } else {
@@ -74,64 +70,59 @@ app.post("/login", (req, res) => {
   });
 });
 
-
 // Configs do CRUD
 app.post("/insert", (req, res) => {
-  const { name } = req.body;
-  const { cost } = req.body;
-  let SQL = "INSERT INTO items (name,cost) VALUES (?,?)"
+  const { name, cost } = req.body;
+  let SQL = "INSERT INTO items (name, cost) VALUES ($1, $2)";
 
-    db.query(SQL,[name,cost], (err, result) => {
-        console.log(err);
-   }) 
+  db.query(SQL, [name, cost], (err, result) => {
+    if (err) console.log(err);
+    else res.send(result);
+  });
 });
 
 app.get("/get", (req, res) => {
-    let SQL = "SELECT * FROM items"
+  let SQL = "SELECT * FROM items";
 
-    db.query(SQL, (err, result) => {
-        if (err) console.log(err);
-        else res.send(result);
-    });
+  db.query(SQL, (err, result) => {
+    if (err) console.log(err);
+    else res.send(result.rows);
+  });
 });
 
-app.get("/getCards/:nome", (req,res) => {
+app.get("/getCards/:nome", (req, res) => {
   const nome = req.params.nome;
-  let sql = `SELECT * FROM items WHERE name LIKE '${nome}%'`;
-  db.query(sql, [nome],(err, result) => {
+  let sql = `SELECT * FROM items WHERE name LIKE $1`;
+  db.query(sql, [`${nome}%`], (err, result) => {
     if (err) {
       console.log(err);
-    }else {
-      res.send(result);
+    } else {
+      res.send(result.rows);
     }
-  })
+  });
 });
 
-app.put("/edit", (req,res)=>{
-    const { id } = req.body;
-    const { name } = req.body;
-    const { cost } = req.body;
+app.put("/edit", (req, res) => {
+  const { id, name, cost } = req.body;
 
-    let SQL = "UPDATE items SET name= ?, cost= ? WHERE iditems = ?";
+  let SQL = "UPDATE items SET name = $1, cost = $2 WHERE iditems = $3";
 
-    db.query(SQL, [name, cost, id], (err, result) => {
-        if (err) console.log(err);
-        else res.send(result);
-    });
-
+  db.query(SQL, [name, cost, id], (err, result) => {
+    if (err) console.log(err);
+    else res.send(result);
+  });
 });
 
-app.delete("/delete/:id",(req,res)=>{
-        const {id} = req.params;
-        let SQL = "DELETE FROM items WHERE iditems = ?";
-         
-        db.query(SQL,[id],(err, result) => {
-            if (err) console.log(err);
-            else res.send(result);
-        });
-})
+app.delete("/delete/:id", (req, res) => {
+  const { id } = req.params;
+  let SQL = "DELETE FROM items WHERE iditems = $1";
 
+  db.query(SQL, [id], (err, result) => {
+    if (err) console.log(err);
+    else res.send(result);
+  });
+});
 
 app.listen(3003, () => {
-  console.log("rodando na porta 3003");
+  console.log("Rodando na porta 3003");
 });
