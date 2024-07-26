@@ -8,7 +8,7 @@ const saltRounds = 10;
 {/*Conexão com o banco de dados */}
 const db = new Pool({
   user: "crud_etcq_user",
-  host: "localhost",
+  host: "dpg-cqhtq8ogph6c73cagft0-a",
   database: "crud_etcq",
   password: "LK8AVmfAg7MiobSuoKrbNvzdXeWduo7y",
   port: 5432,
