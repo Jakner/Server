@@ -43,26 +43,30 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Verificação de login
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+{/*Verificação de login*/}
+app.post("/login", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
 
-  try {
-    const result = await db.query("SELECT * FROM usuarios WHERE email = $1", [email]);
-    if (result.rows.length === 0) {
-      return res.send({ msg: "Usuário não registrado!" });
+  db.query("SELECT * FROM usuarios WHERE email = $1", [email], (err, result) => {
+    if (err) {
+      res.send(err);
     }
-
-    const isMatch = await bcrypt.compare(password, result.rows[0].password);
-    if (isMatch) {
-      res.send({ msg: "Login bem-sucedido" });
+    if (result.rows.length > 0) {
+      bcrypt.compare(password, result.rows[0].password, (error, response) => {
+        if (error) {
+          res.send(error);
+        }
+        if (response === true) {
+          res.send(response);
+        } else {
+          res.send({ msg: "Email ou senha incorreta" });
+        }
+      });
     } else {
-      res.send({ msg: "Email ou senha incorreta" });
+      res.send({ msg: "Usuário não registrado!" });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(err);
-  }
+  });
 });
 
 // Inserir item
