@@ -72,13 +72,13 @@ app.post("/login", (req, res) => {
 // Inserir item
 app.post("/insert", async (req, res) => {
   const { name, cost } = req.body;
-
   try {
-    await db.query("INSERT INTO items (name, cost) VALUES ($1, $2)", [name, cost]);
+    const result = await db.query("INSERT INTO items (name, cost) VALUES ($1, $2)", [name, cost]);
+    console.log("Insert result:", result);
     res.send({ msg: "Item inserido com sucesso" });
   } catch (err) {
-    console.error(err);
-    res.status(500).send(err);
+    console.error("Erro ao inserir item:", err);
+    res.status(500).send({ msg: "Erro ao inserir item", error: err.message });
   }
 });
 
