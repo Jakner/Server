@@ -3,9 +3,10 @@ const app = express();
 const { Pool } = require("pg");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
+
 const saltRounds = 10;
 
-{/*Conexão com o banco de dados */}
+// Conexão com o banco de dados
 const db = new Pool({
   user: "crud_etcq_user",
   host: "dpg-cqhtq8ogph6c73cagft0-a",
@@ -17,110 +18,114 @@ const db = new Pool({
 app.use(express.json());
 app.use(cors());
 
-app.post("/register", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
+// Função para verificar se um email já está cadastrado
+async function isEmailRegistered(email) {
+  const result = await db.query("SELECT * FROM usuarios WHERE email = $1", [email]);
+  return result.rows.length > 0;
+}
 
-  db.query("SELECT * FROM usuarios WHERE email = $1", [email], (err, result) => {
-    if (err) {
-      res.send(err);
+// Registro de usuário
+app.post("/register", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const emailExists = await isEmailRegistered(email);
+    if (emailExists) {
+      return res.send({ msg: "Email já cadastrado" });
     }
+
+    const hash = await bcrypt.hash(password, saltRounds);
+    await db.query("INSERT INTO usuarios (email, password) VALUES ($1, $2)", [email, hash]);
+    res.send({ msg: "Usuário cadastrado com sucesso" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
+});
+
+// Verificação de login
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const result = await db.query("SELECT * FROM usuarios WHERE email = $1", [email]);
     if (result.rows.length === 0) {
-      bcrypt.hash(password, saltRounds, (err, hash) => {
-        db.query(
-          "INSERT INTO usuarios (email, password) VALUES ($1, $2)",
-          [email, hash],
-          (error, response) => {
-            if (error) {
-              res.send(error);
-            }
-            res.send({ msg: "Usuário cadastrado com sucesso" });
-          }
-        );
-      });
-    } else {
-      res.send({ msg: "Email já cadastrado" });
+      return res.send({ msg: "Usuário não registrado!" });
     }
-  });
+
+    const isMatch = await bcrypt.compare(password, result.rows[0].password);
+    if (isMatch) {
+      res.send({ msg: "Login bem-sucedido" });
+    } else {
+      res.send({ msg: "Email ou senha incorreta" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
 });
 
-{/*Verificação de login*/}
-app.post("/login", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-
-  db.query("SELECT * FROM usuarios WHERE email = $1", [email], (err, result) => {
-    if (err) {
-      res.send(err);
-    }
-    if (result.rows.length > 0) {
-      bcrypt.compare(password, result.rows[0].password, (error, response) => {
-        if (error) {
-          res.send(error);
-        }
-        if (response === true) {
-          res.send(response);
-        } else {
-          res.send({ msg: "Email ou senha incorreta" });
-        }
-      });
-    } else {
-      res.send({ msg: "Usuário não registrado!" });
-    }
-  });
-});
-
-// Configs do CRUD
-app.post("/insert", (req, res) => {
+// Inserir item
+app.post("/insert", async (req, res) => {
   const { name, cost } = req.body;
-  let SQL = "INSERT INTO items (name, cost) VALUES ($1, $2)";
 
-  db.query(SQL, [name, cost], (err, result) => {
-    if (err) console.log(err);
-    else res.send(result);
-  });
+  try {
+    await db.query("INSERT INTO items (name, cost) VALUES ($1, $2)", [name, cost]);
+    res.send({ msg: "Item inserido com sucesso" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
 });
 
-app.get("/get", (req, res) => {
-  let SQL = "SELECT * FROM items";
-
-  db.query(SQL, (err, result) => {
-    if (err) console.log(err);
-    else res.send(result.rows);
-  });
+// Obter todos os itens
+app.get("/get", async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM items");
+    res.send(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
 });
 
-app.get("/getCards/:nome", (req, res) => {
-  const nome = req.params.nome;
-  let sql = `SELECT * FROM items WHERE name LIKE $1`;
-  db.query(sql, [`${nome}%`], (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.send(result.rows);
-    }
-  });
+// Obter itens por nome
+app.get("/getCards/:nome", async (req, res) => {
+  const { nome } = req.params;
+
+  try {
+    const result = await db.query("SELECT * FROM items WHERE name LIKE $1", [`${nome}%`]);
+    res.send(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
 });
 
-app.put("/edit", (req, res) => {
+// Editar item
+app.put("/edit", async (req, res) => {
   const { id, name, cost } = req.body;
 
-  let SQL = "UPDATE items SET name = $1, cost = $2 WHERE iditems = $3";
-
-  db.query(SQL, [name, cost, id], (err, result) => {
-    if (err) console.log(err);
-    else res.send(result);
-  });
+  try {
+    await db.query("UPDATE items SET name = $1, cost = $2 WHERE iditems = $3", [name, cost, id]);
+    res.send({ msg: "Item atualizado com sucesso" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
 });
 
-app.delete("/delete/:id", (req, res) => {
+// Deletar item
+app.delete("/delete/:id", async (req, res) => {
   const { id } = req.params;
-  let SQL = "DELETE FROM items WHERE iditems = $1";
 
-  db.query(SQL, [id], (err, result) => {
-    if (err) console.log(err);
-    else res.send(result);
-  });
+  try {
+    await db.query("DELETE FROM items WHERE iditems = $1", [id]);
+    res.send({ msg: "Item deletado com sucesso" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
 });
 
 app.listen(3003, () => {
