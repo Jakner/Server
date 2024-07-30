@@ -172,3 +172,7 @@ app.delete("/delete/:id", async (req, res) => {
     res.status(500).send({ msg: "Erro ao deletar item", error: err.message });
   }
 });
+
+app.listen(3003, () => {
+  console.log("Rodando na porta 3003");
+});
