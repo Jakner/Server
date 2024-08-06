@@ -80,14 +80,15 @@ app.post("/insert", async (req, res) => {
     rg,
     cpf,
     matricula,
+    vencimento,
     valor_mensalidade
   } = req.body;
 
   try {
     const result = await db.query(
-      `INSERT INTO items (nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, valor_mensalidade)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, valor_mensalidade]
+      `INSERT INTO items (nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, vencimento, valor_mensalidade)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, vencimento, valor_mensalidade]
     );
     console.log("Insert result:", result);
     res.send({ msg: "Item inserido com sucesso" });
@@ -134,6 +135,7 @@ app.put("/edit", async (req, res) => {
     rg,
     cpf,
     matricula,
+    vencimento,
     valor_mensalidade
   } = req.body;
 
@@ -148,9 +150,10 @@ app.put("/edit", async (req, res) => {
            rg = $6,
            cpf = $7,
            matricula = $8,
-           valor_mensalidade = $9
-       WHERE id = $10`,
-      [nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, valor_mensalidade, id]
+           vencimento = $9,
+           valor_mensalidade = $10
+       WHERE id = $11`,
+      [nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, vencimento, valor_mensalidade, id]
     );
     res.send({ msg: "Item atualizado com sucesso" });
   } catch (err) {
