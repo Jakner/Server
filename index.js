@@ -115,7 +115,7 @@ app.get("/getCards/:nome", async (req, res) => {
   const { nome } = req.params;
 
   try {
-    const result = await db.query("SELECT * FROM items WHERE name LIKE $1", [`${nome}%`]);
+    const result = await db.query("SELECT * FROM items WHERE nome LIKE $1", [`${nome}%`]);
     res.send(result.rows);
   } catch (err) {
     console.error(err);
