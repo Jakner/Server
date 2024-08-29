@@ -153,7 +153,7 @@ app.put("/edit", async (req, res) => {
            cpf = $7,
            matricula = $8,
            vencimento = $9,
-           valor_mensalidade = $10
+           valor_mensalidade = $10,
            status_pagamento = $11
        WHERE id = $12`,
       [nome, data_nascimento, email, telefone, endereco, rg, cpf, matricula, vencimento, valor_mensalidade, status_pagamento, id]
